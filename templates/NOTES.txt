@@ -1,0 +1,3 @@
+Your K8ssandra cluster, {{ .Release.Name }}, is currently being provisioned. Not all resources are immediately available via the Kubernetes API. Specific containers are only created after the cluster has initially bootstrapped. Each node should take approximately 2 minutes to bootstrap and come online.
+
+Application workloads running within the same Kubernetes cluster may connect to the created Kubernetes service {{ .Release.Name }}-{{ index (.topology.datacenters 0).name }}-service.

@@ -1,0 +1,53 @@
+apiVersion: k8ssandra.io/v1alpha1
+kind: K8ssandraCluster
+metadata:
+  name: {{ .Release.Name }}
+spec:
+  cassandra:
+    serverType: {{ .Values.server.type }}
+    serverVersion: {{ .Values.server.version }}
+    storageConfig:
+      cassandraDataVolumeClaimSpec:
+        storageClassName: {{ .Values.resources.requests.storage.class }}
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: {{ .Values.resources.requests.storage.size }}
+    initContainers:
+      - name: server-config-init
+        # Hardcode this version as it supports ARM64
+        image: datastax/cass-config-builder:1.0.7
+    config:
+{{ toYaml .Values.config | indent 6 }}
+    datacenters:
+      {{- range .Values.topology.datacenters }}
+      - metadata:
+          name: {{ .name }}
+        size: {{ .size }}
+      {{- end }}
+  
+  reaper:
+    httpManagement:
+      enabled: true
+    heapSize: 256Mi
+    autoScheduling:
+      enabled: false
+    cassandraUserSecretRef:
+      name: {{ .Release.Name  | trunc 52 }}-reaper-cql
+    uiUserSecretRef:
+      name: {{ .Release.Name | trunc 53 }}-reaper-ui
+  medusa:
+    storageProperties:
+      storageProvider: {{ .Values.medusa.provider }}
+      storageSecretRef: 
+        name: {{ .Release.Name | trunc 48 }}-medusa-storage
+      {{- if eq .Values.medusa.provider "s3_compatible" }}
+      {{- with .Values.medusa.s3_compatible }}
+      bucketName: {{ .bucketName }}
+      prefix: {{ .prefix }}
+      host: {{ .host }}
+      port: {{ .port }}
+      secure: {{ .secure }}
+      {{- end }}
+      {{- end }}
